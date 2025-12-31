@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MM-CABELEIRO | Gestão Total</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4a148c; --accent: #d4af37; --bg: #f8f7fa;
+            --text: #2d3436; --white: #ffffff; --success: #2ecc71; --danger: #e74c3c;
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; background-color: var(--bg); 
+            color: var(--text); margin: 0; padding-bottom: 90px;
+        }
+
+        /* --- HEADER --- */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #7b1fa2 100%);
+            color: white; padding: 25px 20px 45px; text-align: center;
+            border-radius: 0 0 35px 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* --- TABS NAVEGAÇÃO SUPERIOR --- */
+        .tab-container {
+            display: flex; background: white; margin: -25px 20px 20px;
+            border-radius: 15px; padding: 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; background: none;
+            font-family: inherit; font-weight: 600; color: var(--text);
+            border-radius: 12px; transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        .content-section { display: none; padding: 0 20px; animation: fadeIn 0.3s; }
+        .content-section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- CARDS --- */
+        .card { 
+            background: var(--white); border-radius: 20px; padding: 20px; 
+            margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+        }
+        
+        .summary-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .stat { background: var(--bg); padding: 10px; border-radius: 12px; text-align: center; }
+        .stat small { font-size: 0.7rem; color: #636e72; display: block; }
+        .stat b { font-size: 1rem; color: var(--primary); }
+
+        /* --- AGENDA ITEMS --- */
+        .agenda-item {
+            display: flex; align-items: center; background: white;
+            padding: 15px; border-radius: 15px; margin-bottom: 10px;
+            border-left: 5px solid var(--accent);
+        }
+        .time-box { min-width: 60px; font-weight: 700; color: var(--primary); border-right: 1px solid #eee; margin-right: 15px; }
+        .client-info { flex-grow: 1; }
+        .client-info b { display: block; font-size: 0.95rem; }
+        .client-info span { font-size: 0.8rem; color: #636e72; }
+        .status-btn { 
+            background: #eee; border: none; width: 35px; height: 35px; 
+            border-radius: 50%; font-size: 1.2rem; cursor: pointer;
+        }
+        .status-btn.done { background: var(--success); color: white; }
+
+        /* --- FORMS & MODALS --- */
+        .modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: flex-end; 
+        }
+        .modal-content { 
+            background: white; width: 100%; padding: 25px; 
+            border-radius: 30px 30px 0 0; box-sizing: border-box;
+        }
+        input, select { 
+            width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #eee; 
+            border-radius: 12px; background: #f9f9f9; font-size: 1rem;
+        }
+        .btn-main { 
+            width: 100%; padding: 16px; border: none; border-radius: 12px; 
+            background: var(--primary); color: white; font-weight: 600; margin-top: 10px;
+        }
+
+        /* --- BOTTOM NAV --- */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: white;
+            display: flex; justify-content: space-around; padding: 12px 0;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05); border-radius: 20px 20px 0 0;
+        }
+        .nav-btn { background: none; border: none; color: #b2bec3; font-size: 0.7rem; text-align: center; font-weight: 600; }
+        .nav-btn.active { color: var(--primary); }
+        .nav-btn i { font-size: 1.5rem; display: block; margin-bottom: 2px; }
+
+        .btn-add-float {
+            position: fixed; bottom: 100px; right: 20px; width: 60px; height: 60px;
+            background: var(--accent); border-radius: 50%; color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4); border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 style="margin:0">MM-CABELEIRO</h2>
+        <small id="display-date">Hoje</small>
+    </div>
+
+    <!-- Abas de troca de visão -->
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="switchTab('agenda')">AGENDA</button>
+        <button class="tab-btn" onclick="switchTab('caixa')">CAIXA</button>
+    </div>
+
+    <!-- SECCÃO AGENDA -->
+    <div id="sec-agenda" class="content-section active">
+        <div class="card">
+            <h4 style="margin:0 0 10px">Próximos Clientes</h4>
+            <div id="lista-agenda">
+                <!-- Items da agenda via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SECÇÃO CAIXA -->
+    <div id="sec-caixa" class="content-section">
+        <div class="card">
+            <span style="font-size: 0.75rem; color: gray; text-transform: uppercase;">Saldo em Caixa</span>
+            <h2 id="saldo-total" style="margin: 5px 0; color: var(--primary);">0 Kz</h2>
+            <div class="summary-box">
+                <div class="stat"><small>Entradas</small><b id="total-ent" style="color:var(--success)">0 Kz</b></div>
+                <div class="stat"><small>Saídas</small><b id="total-sai" style="color:var(--danger)">0 Kz</b></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <canvas id="graficoCaixa" height="150"></canvas>
+        </div>
+
+        <h4 style="margin: 15px 5px">Movimentos Recentes</h4>
+        <div id="lista-caixa"></div>
+    </div>
+
+    <!-- BOTÃO FLUTUANTE ADICIONAR -->
+    <button class="btn-add-float" onclick="abrirModalPrincipal()">+</button>
+
+    <!-- BARRA INFERIOR -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="location.reload()"><i>🏠</i>Painel</button>
+        <button class="nav-btn" onclick="abrirConfig()"><i>⚙️</i>Menu</button>
+        <button class="nav-btn" onclick="selecionarData()"><i>📅</i>Data</button>
+        <button class="nav-btn" onclick="gerarRelatorioExcel()"><i>📊</i>Excel</button>
+    </nav>
+
+    <!-- MODAL PARA NOVA MARCAÇÃO -->
+    <div id="modalAdd" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Nova Marcação</h3>
+            <div id="form-agenda">
+                <input type="text" id="ag-cliente" placeholder="Nome da Cliente">
+                <select id="ag-servico"></select>
+                <input type="time" id="ag-hora">
+                <button class="btn-main" onclick="salvarAgenda()">AGENDAR</button>
+            </div>
+            <div id="form-caixa" style="display:none">
+                <select id="cx-tipo" onchange="toggleCaixaCampos()">
+                    <option value="entrada">Entrada (Ganho)</option>
+                    <option value="saida">Saída (Gasto)</option>
+                </select>
+                <select id="cx-cat"></select>
+                <input type="number" id="cx-valor" placeholder="Valor (Kz)" inputmode="numeric">
+                <button class="btn-main" style="background:var(--success)" onclick="salvarFinanceiro()">REGISTAR</button>
+            </div>
+            <button onclick="fecharModais()" style="background:none; border:none; width:100%; margin-top:15px; color:gray;">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL GESTÃO MENU -->
+    <div id="modalConfig" class="modal">
+        <div class="modal-content" style="height: 70vh; overflow-y: auto;">
+            <h3>Configurar Serviços</h3>
+            <input type="text" id="novo-serv-nome" placeholder="Ex: Lavagem + Secagem">
+            <button class="btn-main" onclick="addServicoConfig()">+ Adicionar ao Menu</button>
+            <div id="lista-serv-config" style="margin-top:20px;"></div>
+            <button class="btn-main" style="background:#333" onclick="fecharModais()">Sair</button>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DADOS ---
+        let db_fin = JSON.parse(localStorage.getItem('mm_fin')) || [];
+        let db_age = JSON.parse(localStorage.getItem('mm_age')) || [];
+        let db_servicos = JSON.parse(localStorage.getItem('mm_servicos')) || ["Corte", "Tranças", "Unhas", "Lavagem", "Manicure"];
+        
+        let abaAtual = 'agenda';
+        let dataFiltro = new Date().toLocaleDateString('pt-PT');
+
+        // --- NAVEGAÇÃO ---
+        function switchTab(tab) {
+            abaAtual = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('sec-' + tab).classList.add('active');
+            atualizarUI();
+        }
+
+        function abrirModalPrincipal() {
+            document.getElementById('modalAdd').style.display = 'flex';
+            const servSelect = document.getElementById('ag-servico');
+            servSelect.innerHTML = db_servicos.map(s => `<option value="${s}">${s}</option>`).join('');
+            
+            if(abaAtual === 'agenda') {
+                document.getElementById('modal-title').innerText = "Nova Marcação";
+                document.getElementById('form-agenda').style.display = 'block';
+                document.getElementById('form-caixa').style.display = 'none';
+            } else {
+                document.getElementById('modal-title').innerText = "Movimento Financeiro";
+                document.getElementById('form-agenda').style.display = 'none';
+                document.getElementById('form-caixa').style.display = 'block';
+                toggleCaixaCampos();
+            }
+        }
+
+        function fecharModais() { 
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); 
+        }
+
+        // --- LÓGICA AGENDA ---
+        function salvarAgenda() {
+            const cliente = document.getElementById('ag-cliente').value;
+            const servico = document.getElementById('ag-servico').value;
+            const hora = document.getElementById('ag-hora').value;
+
+            if(!cliente || !hora) return alert("Preencha tudo");
+
+            db_age.push({
+                id: Date.now(),
+                cliente, servico, hora,
+                data: dataFiltro,
+                status: 'pendente'
+            });
+
+            db_age.sort((a,b) => a.hora.localeCompare(b.hora));
+            localStorage.setItem('mm_age', JSON.stringify(db_age));
+            document.getElementById('ag-cliente').value = '';
+            fecharModais();
+            atualizarUI();
+        }
+
+        function concluirAtendimento(id) {
+            const index = db_age.findIndex(a => a.id === id);
+            if(db_age[index].status === 'concluido') return;
+
+            if(confirm("Atendimento concluído? Deseja registar o pagamento no caixa?")) {
+                const valor = prompt("Qual o valor recebido?");
+                if(valor) {
+                    db_fin.push({
+                        tipo: 'entrada',
+                        cat: 'Serviço Agenda',
+                        item: db_age[index].cliente + " (" + db_age[index].servico + ")",
+                        valor: parseFloat(valor),
+                        data: dataFiltro,
+                        hora: new Date().toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})
+                    });
+                    localStorage.setItem('mm_fin', JSON.stringify(db_fin));
+                }
+                db_age[index].status = 'concluido';
+                localStorage.setItem('mm_age', JSON.stringify(db_age));
+                atualizarUI();
+            }
+        }
+
+        function excluirAgenda(id) {
+            if(confirm("Remover marcação?")) {
+                db_age = db_age.filter(a => a.id !== id);
+                localStorage.setItem('mm_age', JSON.stringify(db_age));
+                atualizarUI();
+            }
+        }
+
+        // --- LÓGICA FINANCEIRA ---
+        function toggleCaixaCampos() {
+            const tipo = document.getElementById('cx-tipo').value;
+            const cat = document.getElementById('cx-cat');
+            const cats = tipo === 'entrada' ? db_servicos : ["Renda", "Produtos", "Energia", "Outros"];
+            cat.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function salvarFinanceiro() {
+            const valor = document.getElementById('cx-valor').value;
+            if(!valor) return;
+
+            db_fin.push({
+                tipo: document.getElementById('cx-tipo').value,
+                cat: document.getElementById('cx-cat').value,
+                item: "Registo Manual",
+                valor: parseFloat(valor),
+                data: dataFiltro,
+                hora: new Date().toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})
+            });
+
+            localStorage.setItem('mm_fin', JSON.stringify(db_fin));
+            document.getElementById('cx-valor').value = '';
+            fecharModais();
+            atualizarUI();
+        }
+
+        // --- INTERFACE ---
+        function atualizarUI() {
+            document.getElementById('display-date').innerText = "Data: " + dataFiltro;
+
+            // Render Agenda
+            const listaAg = document.getElementById('lista-agenda');
+            const agDia = db_age.filter(a => a.data === dataFiltro);
+            listaAg.innerHTML = agDia.length ? agDia.map(a => `
+                <div class="agenda-item" style="opacity: ${a.status === 'concluido' ? '0.5' : '1'}">
+                    <div class="time-box">${a.hora}</div>
+                    <div class="client-info">
+                        <b>${a.cliente}</b>
+                        <span>${a.servico}</span>
+                    </div>
+                    <button class="status-btn ${a.status === 'concluido' ? 'done' : ''}" onclick="concluirAtendimento(${a.id})">
+                        ${a.status === 'concluido' ? '✓' : '○'}
+                    </button>
+                    <button onclick="excluirAgenda(${a.id})" style="border:none; background:none; color:red; margin-left:10px;">×</button>
+                </div>
+            `).join('') : '<p style="text-align:center; color:gray">Sem marcações para este dia.</p>';
+
+            // Render Caixa
+            const finDia = db_fin.filter(f => f.data === dataFiltro);
+            const ent = finDia.filter(f => f.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
+            const sai = finDia.filter(f => f.tipo === 'saida').reduce((a,b) => a + b.valor, 0);
+
+            document.getElementById('saldo-total').innerText = (ent - sai).toLocaleString() + ' Kz';
+            document.getElementById('total-ent').innerText = ent.toLocaleString() + ' Kz';
+            document.getElementById('total-sai').innerText = sai.toLocaleString() + ' Kz';
+
+            const listaCx = document.getElementById('lista-caixa');
+            listaCx.innerHTML = finDia.slice().reverse().map(f => `
+                <div style="background:white; padding:12px; border-radius:12px; margin-bottom:8px; display:flex; justify-content:space-between">
+                    <div><b>${f.cat}</b><br><small>${f.hora}</small></div>
+                    <span style="color:${f.tipo === 'entrada' ? 'green' : 'red'}; font-weight:bold">
+                        ${f.tipo === 'entrada' ? '+' : '-'} ${f.valor.toLocaleString()}
+                    </span>
+                </div>
+            `).join('');
+
+            renderGrafico(ent, sai);
+        }
+
+        function abrirConfig() {
+            document.getElementById('modalConfig').style.display = 'flex';
+            renderConfigLista();
+        }
+
+        function addServicoConfig() {
+            const nome = document.getElementById('novo-serv-nome').value;
+            if(nome) {
+                db_servicos.push(nome);
+                localStorage.setItem('mm_servicos', JSON.stringify(db_servicos));
+                document.getElementById('novo-serv-nome').value = '';
+                renderConfigLista();
+            }
+        }
+
+        function renderConfigLista() {
+            document.getElementById('lista-serv-config').innerHTML = db_servicos.map((s, i) => `
+                <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                    ${s} <span style="color:red" onclick="db_servicos.splice(${i},1); salvarServs();">Apagar</span>
+                </div>
+            `).join('');
+        }
+
+        function salvarServs() { 
+            localStorage.setItem('mm_servicos', JSON.stringify(db_servicos)); 
+            renderConfigLista(); 
+        }
+
+        function selecionarData() {
+            const novaData = prompt("Insira a data (DD/MM/AAAA):", dataFiltro);
+            if(novaData) { dataFiltro = novaData; atualizarUI(); }
+        }
+
+        function gerarRelatorioExcel() {
+            const ws = XLSX.utils.json_to_sheet(db_fin);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Caixa");
+            XLSX.writeFile(wb, `Relatorio_MM_Cabeleiro.xlsx`);
+        }
+
+        let chart;
+        function renderGrafico(e, s) {
+            const ctx = document.getElementById('graficoCaixa').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Entradas', 'Saídas'],
+                    datasets: [{ data: [e, s], backgroundColor: ['#2ecc71', '#e74c3c'], borderWidth: 0 }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } }, cutout: '70%' }
+            });
+        }
+
+        atualizarUI();
+    </script>
+</body>
+</html>
