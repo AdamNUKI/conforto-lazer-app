@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Conforto Lazer - Gestão</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --verde: #27ae60; --vermelho: #e74c3c; --azul: #2980b9; --fundo: #f8f9fa; --texto: #2c3e50; }
+        body { font-family: sans-serif; background: var(--fundo); color: var(--texto); margin: 0; padding: 15px; padding-bottom: 80px; }
+        
+        .resumo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card.cheio { grid-column: span 2; text-align: center; }
+        .valor { font-size: 1.4rem; font-weight: bold; display: block; margin-top: 5px; }
+        .positivo { color: var(--verde); }
+        .negativo { color: var(--vermelho); }
+
+        .btn-grupo { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        button { border: none; padding: 18px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-entrada { background: var(--verde); }
+        .btn-saida { background: var(--vermelho); }
+        .btn-relatorio { background: var(--azul); width: 100%; margin-top: 10px; }
+        
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 10; }
+        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; max-height: 80vh; overflow-y: auto; }
+        input, select { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1.1rem; box-sizing: border-box; }
+        
+        .historico { margin-top: 20px; background: white; border-radius: 12px; padding: 10px; }
+        .item-lista { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 style="font-size: 1.4rem; margin: 0;">Conforto Lazer 🇦🇴</h1>
+        <small id="data-hoje"></small>
+    </header>
+
+    <div class="resumo-grid" style="margin-top:15px;">
+        <div class="card cheio">
+            <small>SALDO HOJE</small>
+            <span id="saldo-dia" class="valor">0 Kz</span>
+        </div>
+        <div class="card">
+            <small>ENTRADAS</small>
+            <span id="total-entradas" class="valor positivo">0 Kz</span>
+        </div>
+        <div class="card">
+            <small>SAÍDAS</small>
+            <span id="total-saidas" class="valor negativo">0 Kz</span>
+        </div>
+    </div>
+
+    <div class="btn-grupo">
+        <button class="btn-entrada" onclick="abrirModal('entrada')">+ ENTRADA</button>
+        <button class="btn-saida" onclick="abrirModal('saida')">- SAÍDA</button>
+    </div>
+
+    <div class="card cheio" style="margin-bottom: 20px;">
+        <canvas id="graficoDia" height="120"></canvas>
+    </div>
+
+    <button class="btn-relatorio" onclick="gerarRelatorioExcel()">📊 EXPORTAR EXCEL (MENSAL)</button>
+
+    <div class="historico">
+        <h3>Últimos Registos</h3>
+        <div id="lista-atividades"></div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h2 id="modal-titulo">Novo Registo</h2>
+            <select id="categoria"></select>
+            <input type="number" id="valor" placeholder="Valor em Kwanza" inputmode="numeric">
+            <button class="btn-entrada" id="btn-salvar" style="width: 100%;" onclick="salvarRegisto()">CONFIRMAR</button>
+            <button onclick="fecharModal()" style="background:none; color: gray; width: 100%; margin-top: 10px;">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        let dados = JSON.parse(localStorage.getItem('conforto_lazer_db')) || [];
+        let tipoAtual = '';
+
+        const categorias = {
+            entrada: ['Almoço', 'Bar / Esplanada', 'Petiscos', 'Combos'],
+            saida: ['Compras', 'Gás / Carvão', 'Energia', 'Água', 'Transporte', 'Outros']
+        };
+
+        function atualizarUI() {
+            const hoje = new Date().toLocaleDateString('pt-PT');
+            document.getElementById('data-hoje').innerText = hoje;
+
+            const registrosHoje = dados.filter(d => d.data === hoje);
+            const entradas = registrosHoje.filter(d => d.tipo === 'entrada').reduce((a, b) => a + b.valor, 0);
+            const saidas = registrosHoje.filter(d => d.tipo === 'saida').reduce((a, b) => a + b.valor, 0);
+            
+            document.getElementById('total-entradas').innerText = entradas.toLocaleString() + ' Kz';
+            document.getElementById('total-saidas').innerText = saidas.toLocaleString() + ' Kz';
+            document.getElementById('saldo-dia').innerText = (entradas - saidas).toLocaleString() + ' Kz';
+
+            const lista = document.getElementById('lista-atividades');
+            lista.innerHTML = registrosHoje.slice().reverse().slice(0, 8).map(r => `
+                <div class="item-lista">
+                    <span>${r.hora.slice(0,5)} - ${r.cat}</span>
+                    <b class="${r.tipo === 'entrada' ? 'positivo' : 'negativo'}">${r.valor} Kz</b>
+                </div>
+            `).join('');
+
+            localStorage.setItem('conforto_lazer_db', JSON.stringify(dados));
+            renderGrafico(entradas, saidas);
+        }
+
+        function abrirModal(tipo) {
+            tipoAtual = tipo;
+            const select = document.getElementById('categoria');
+            select.innerHTML = categorias[tipo].map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('modal-titulo').innerText = tipo === 'entrada' ? 'Registar Ganho' : 'Registar Gasto';
+            document.getElementById('btn-salvar').className = tipo === 'entrada' ? 'btn-entrada' : 'btn-saida';
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('valor').focus();
+        }
+
+        function fecharModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function salvarRegisto() {
+            const valorInput = document.getElementById('valor').value;
+            if (!valorInput) return;
+
+            dados.push({
+                tipo: tipoAtual,
+                cat: document.getElementById('categoria').value,
+                valor: parseFloat(valorInput),
+                data: new Date().toLocaleDateString('pt-PT'),
+                hora: new Date().toLocaleTimeString('pt-PT')
+            });
+
+            fecharModal();
+            document.getElementById('valor').value = '';
+            atualizarUI();
+        }
+
+        function gerarRelatorioExcel() {
+            if(dados.length === 0) return alert("Sem dados para exportar.");
+            
+            const worksheet = XLSX.utils.json_to_sheet(dados);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
+            
+            const dataAtual = new Date().toISOString().slice(0,10);
+            XLSX.writeFile(workbook, `Conforto_Lazer_Relatorio_${dataAtual}.xlsx`);
+        }
+
+        let chart;
+        function renderGrafico(e, s) {
+            const ctx = document.getElementById('graficoDia').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Entradas', 'Saídas'],
+                    datasets: [{ data: [e, s], backgroundColor: ['#27ae60', '#e74c3c'], borderWidth: 0 }]
+                },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        atualizarUI();
+    </script>
+</body>
+</html>
