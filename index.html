@@ -3,153 +3,386 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Conforto Lazer - Gestão</title>
+    <title>Conforto Lazer | Gestão Gourmet</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --verde: #27ae60; --vermelho: #e74c3c; --azul: #2980b9; --fundo: #f8f9fa; --texto: #2c3e50; }
-        body { font-family: sans-serif; background: var(--fundo); color: var(--texto); margin: 0; padding: 15px; padding-bottom: 80px; }
-        
-        .resumo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .card.cheio { grid-column: span 2; text-align: center; }
-        .valor { font-size: 1.4rem; font-weight: bold; display: block; margin-top: 5px; }
-        .positivo { color: var(--verde); }
-        .negativo { color: var(--vermelho); }
+        :root {
+            --primary: #e67e22; /* Laranja Restaurante */
+            --accent: #f1c40f; /* Dourado */
+            --dark: #1a1a1a;   /* Fundo Elegante */
+            --card: #ffffff;
+            --text: #2d3436;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --gray: #636e72;
+        }
 
-        .btn-grupo { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        button { border: none; padding: 18px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
-        .btn-entrada { background: var(--verde); }
-        .btn-saida { background: var(--vermelho); }
-        .btn-relatorio { background: var(--azul); width: 100%; margin-top: 10px; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: #f0f2f5; 
+            color: var(--text); 
+            margin: 0; 
+            padding: 0;
+            padding-bottom: 90px; /* Espaço para a barra inferior */
+        }
+
+        /* --- HEADER ESTILIZADO --- */
+        .header {
+            background: linear-gradient(135deg, var(--dark) 0%, #2d3436 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 0 0 30px 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .header h1 { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+        .header p { margin: 5px 0 0; opacity: 0.8; font-size: 0.9rem; }
+
+        /* --- CARDS DE RESUMO --- */
+        .container { padding: 0 20px; margin-top: -25px; }
         
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 10; }
-        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 15px; max-height: 80vh; overflow-y: auto; }
-        input, select { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1.1rem; box-sizing: border-box; }
-        
-        .historico { margin-top: 20px; background: white; border-radius: 12px; padding: 10px; }
-        .item-lista { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .main-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .balance-label { font-size: 0.8rem; color: var(--gray); font-weight: 600; text-transform: uppercase; }
+        .balance-value { font-size: 2rem; font-weight: 700; color: var(--dark); display: block; margin: 5px 0; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .stat-item { padding: 15px; border-radius: 15px; background: #f8f9fa; }
+        .stat-item small { display: block; font-size: 0.7rem; font-weight: 600; margin-bottom: 5px; }
+        .stat-item span { font-weight: 700; font-size: 1rem; }
+
+        /* --- BOTÕES DE ACÇÃO --- */
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 25px 0; }
+        .btn-act { 
+            border: none; padding: 18px; border-radius: 18px; font-weight: 600; 
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            transition: 0.3s; cursor: pointer; color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-in { background: var(--success); }
+        .btn-out { background: var(--danger); }
+        .btn-act:active { transform: scale(0.95); }
+
+        /* --- LISTA DE ATIVIDADES --- */
+        .section-title { font-weight: 700; font-size: 1.1rem; margin: 20px 0 15px; display: flex; justify-content: space-between; align-items: center; }
+        .activity-card {
+            background: white; border-radius: 15px; padding: 15px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            border-left: 5px solid transparent;
+        }
+        .activity-card.entrada { border-left-color: var(--success); }
+        .activity-card.saida { border-left-color: var(--danger); }
+        .act-info b { display: block; font-size: 0.95rem; }
+        .act-info small { color: var(--gray); font-size: 0.75rem; }
+        .act-amount { text-align: right; font-weight: 700; }
+
+        /* --- BARRA DE NAVEGAÇÃO INFERIOR --- */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: white;
+            display: flex; justify-content: space-around; padding: 15px 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05); border-radius: 20px 20px 0 0;
+            z-index: 100;
+        }
+        .nav-item { border: none; background: none; color: var(--gray); font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 2px; }
+
+        /* --- MODAIS ESTILIZADOS --- */
+        .modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 200;
+            align-items: flex-end; /* Abre de baixo para cima como apps modernos */
+        }
+        .modal-content { 
+            background: white; width: 100%; padding: 30px 20px; 
+            border-radius: 30px 30px 0 0; box-sizing: border-box;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        input, select { 
+            width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #eee; 
+            border-radius: 12px; background: #f8f9fa; font-family: inherit; font-size: 1rem;
+        }
+
+        .btn-confirm { 
+            width: 100%; padding: 16px; border-radius: 12px; border: none; 
+            background: var(--dark); color: white; font-weight: 600; font-size: 1rem; margin-top: 10px;
+        }
+
     </style>
 </head>
 <body>
 
-    <header>
-        <h1 style="font-size: 1.4rem; margin: 0;">Conforto Lazer 🇦🇴</h1>
-        <small id="data-hoje"></small>
-    </header>
+    <div class="header">
+        <h1>Conforto Lazer 🇦🇴</h1>
+        <p id="data-texto">Carregando...</p>
+    </div>
 
-    <div class="resumo-grid" style="margin-top:15px;">
-        <div class="card cheio">
-            <small>SALDO HOJE</small>
-            <span id="saldo-dia" class="valor">0 Kz</span>
+    <div class="container">
+        <!-- Dashboard Principal -->
+        <div class="main-card">
+            <span class="balance-label">Saldo em Caixa</span>
+            <span class="balance-value" id="saldo-dia">0 Kz</span>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <small style="color: var(--success)">ENTRADAS</small>
+                    <span id="total-entradas">0 Kz</span>
+                </div>
+                <div class="stat-item">
+                    <small style="color: var(--danger)">SAÍDAS</small>
+                    <span id="total-saidas">0 Kz</span>
+                </div>
+            </div>
         </div>
-        <div class="card">
-            <small>ENTRADAS</small>
-            <span id="total-entradas" class="valor positivo">0 Kz</span>
+
+        <!-- Atalhos Rápidos -->
+        <div class="action-buttons">
+            <button class="btn-act btn-in" onclick="abrirVenda('entrada')">
+                <span style="font-size: 1.5rem;">💰</span>
+                Nova Venda
+            </button>
+            <button class="btn-act btn-out" onclick="abrirVenda('saida')">
+                <span style="font-size: 1.5rem;">💸</span>
+                Novo Gasto
+            </button>
         </div>
-        <div class="card">
-            <small>SAÍDAS</small>
-            <span id="total-saidas" class="valor negativo">0 Kz</span>
+
+        <!-- Gráfico Compacto -->
+        <div class="main-card" style="margin-bottom: 25px; padding: 15px;">
+            <canvas id="graficoDia" height="100"></canvas>
+        </div>
+
+        <!-- Histórico -->
+        <div class="section-title">
+            Últimos Registos
+            <span style="font-size: 0.8rem; color: var(--primary); font-weight: 400;" onclick="gerarRelatorioExcel()">Ver Relatório</span>
+        </div>
+        <div id="lista-atividades">
+            <!-- Items via JS -->
         </div>
     </div>
 
-    <div class="btn-grupo">
-        <button class="btn-entrada" onclick="abrirModal('entrada')">+ ENTRADA</button>
-        <button class="btn-saida" onclick="abrirModal('saida')">- SAÍDA</button>
-    </div>
+    <!-- Barra de Navegação -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="location.reload()">
+            <span class="nav-icon">🏠</span>Início
+        </button>
+        <button class="nav-item" onclick="abrirConfig()">
+            <span class="nav-icon">🍴</span>Menu/Config
+        </button>
+        <button class="nav-item" onclick="document.getElementById('filtro-data-modal').style.display='flex'">
+            <span class="nav-icon">📅</span>Calendário
+        </button>
+    </nav>
 
-    <div class="card cheio" style="margin-bottom: 20px;">
-        <canvas id="graficoDia" height="120"></canvas>
-    </div>
-
-    <button class="btn-relatorio" onclick="gerarRelatorioExcel()">📊 EXPORTAR EXCEL (MENSAL)</button>
-
-    <div class="historico">
-        <h3>Últimos Registos</h3>
-        <div id="lista-atividades"></div>
-    </div>
-
-    <div id="modal">
+    <!-- MODAL DE REGISTO (VENDA/GASTO) -->
+    <div id="modalVenda" class="modal">
         <div class="modal-content">
-            <h2 id="modal-titulo">Novo Registo</h2>
-            <select id="categoria"></select>
-            <input type="number" id="valor" placeholder="Valor em Kwanza" inputmode="numeric">
-            <button class="btn-entrada" id="btn-salvar" style="width: 100%;" onclick="salvarRegisto()">CONFIRMAR</button>
-            <button onclick="fecharModal()" style="background:none; color: gray; width: 100%; margin-top: 10px;">Cancelar</button>
+            <div style="width: 40px; height: 5px; background: #ddd; border-radius: 10px; margin: -15px auto 20px;"></div>
+            <h3 id="venda-titulo" style="margin: 0 0 20px;">Registar</h3>
+            
+            <label><small>Categoria</small></label>
+            <select id="venda-categoria" onchange="carregarItensVenda()"></select>
+            
+            <label><small>O que é?</small></label>
+            <select id="venda-item"></select>
+
+            <label><small>Valor em Kwanzas</small></label>
+            <input type="number" id="venda-valor" placeholder="0.00 Kz" inputmode="numeric">
+
+            <button class="btn-confirm" id="btn-confirmar-venda" onclick="salvarMovimentacao()">Confirmar Registo</button>
+            <button onclick="fecharModais()" style="background:none; border:none; color:var(--gray); width:100%; margin-top:15px; font-family:inherit;">Talvez depois</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURAÇÃO (PERSONALIZAÇÃO) -->
+    <div id="modalConfig" class="modal">
+        <div class="modal-content" style="height: 80vh; overflow-y: auto;">
+            <h3>Gestão do Menu</h3>
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <button onclick="mudarTabConfig('entrada')" id="tab-ent" style="flex:1; padding:10px; border-radius:10px; border:none; background:var(--primary); color:white;">Entradas</button>
+                <button onclick="mudarTabConfig('saida')" id="tab-sai" style="flex:1; padding:10px; border-radius:10px; border:none; background:#eee;">Saídas</button>
+            </div>
+
+            <div style="background:#f8f9fa; padding:15px; border-radius:15px;">
+                <label><small>Nome da Categoria (ex: Cervejas)</small></label>
+                <input type="text" id="nova-cat-nome">
+                <button class="btn-confirm" style="background:var(--success)" onclick="adicionarCategoria()">+ Criar Categoria</button>
+            </div>
+
+            <div style="background:#f8f9fa; padding:15px; border-radius:15px; margin-top:15px;">
+                <label><small>Adicionar Item (ex: Cuca)</small></label>
+                <select id="select-cat-destino"></select>
+                <input type="text" id="novo-item-nome">
+                <button class="btn-confirm" style="background:var(--primary)" onclick="adicionarItem()">+ Adicionar ao Menu</button>
+            </div>
+
+            <div id="lista-gestao" style="margin-top:20px;"></div>
+            
+            <button class="btn-confirm" onclick="fecharModais()">Sair da Configuração</button>
+        </div>
+    </div>
+
+    <!-- MODAL CALENDÁRIO -->
+    <div id="filtro-data-modal" class="modal">
+        <div class="modal-content">
+            <h3>Mudar Data de Visualização</h3>
+            <input type="date" id="filtro-data" onchange="fecharModais(); atualizarUI();">
+            <button class="btn-confirm" onclick="fecharModais()">Ver esta data</button>
         </div>
     </div>
 
     <script>
-        let dados = JSON.parse(localStorage.getItem('conforto_lazer_db')) || [];
-        let tipoAtual = '';
-
-        const categorias = {
-            entrada: ['Almoço', 'Bar / Esplanada', 'Petiscos', 'Combos'],
-            saida: ['Compras', 'Gás / Carvão', 'Energia', 'Água', 'Transporte', 'Outros']
+        let db = JSON.parse(localStorage.getItem('conforto_v4_dados')) || [];
+        let config = JSON.parse(localStorage.getItem('conforto_v4_config')) || {
+            entrada: { "Pratos": ["Almoço Completo", "Meio Prato"], "Bebidas": ["Cuca", "Eka", "Sumo", "Água"], "Petiscos": ["Asas", "Moelas"] },
+            saida: { "Stock": ["Mercado", "Bebidas"], "Operacional": ["Carvão", "Energia", "Gelo"] }
         };
+        
+        let tabConfigAtual = 'entrada';
+        let tipoVendaAtual = 'entrada';
+        document.getElementById('filtro-data').valueAsDate = new Date();
 
         function atualizarUI() {
-            const hoje = new Date().toLocaleDateString('pt-PT');
-            document.getElementById('data-hoje').innerText = hoje;
+            const dataSelRaw = document.getElementById('filtro-data').value;
+            const dataSel = new Date(dataSelRaw).toLocaleDateString('pt-PT');
+            document.getElementById('data-texto').innerText = dataSel === new Date().toLocaleDateString('pt-PT') ? "Hoje, " + dataSel : dataSel;
 
-            const registrosHoje = dados.filter(d => d.data === hoje);
-            const entradas = registrosHoje.filter(d => d.tipo === 'entrada').reduce((a, b) => a + b.valor, 0);
-            const saidas = registrosHoje.filter(d => d.tipo === 'saida').reduce((a, b) => a + b.valor, 0);
-            
-            document.getElementById('total-entradas').innerText = entradas.toLocaleString() + ' Kz';
-            document.getElementById('total-saidas').innerText = saidas.toLocaleString() + ' Kz';
-            document.getElementById('saldo-dia').innerText = (entradas - saidas).toLocaleString() + ' Kz';
+            const movsDia = db.filter(d => d.data === dataSel);
+            const ent = movsDia.filter(d => d.tipo === 'entrada').reduce((a,b) => a + b.valor, 0);
+            const sai = movsDia.filter(d => d.tipo === 'saida').reduce((a,b) => a + b.valor, 0);
+
+            document.getElementById('total-entradas').innerText = ent.toLocaleString() + ' Kz';
+            document.getElementById('total-saidas').innerText = sai.toLocaleString() + ' Kz';
+            document.getElementById('saldo-dia').innerText = (ent - sai).toLocaleString() + ' Kz';
 
             const lista = document.getElementById('lista-atividades');
-            lista.innerHTML = registrosHoje.slice().reverse().slice(0, 8).map(r => `
-                <div class="item-lista">
-                    <span>${r.hora.slice(0,5)} - ${r.cat}</span>
-                    <b class="${r.tipo === 'entrada' ? 'positivo' : 'negativo'}">${r.valor} Kz</b>
+            lista.innerHTML = movsDia.length ? movsDia.slice().reverse().map(m => `
+                <div class="activity-card ${m.tipo}">
+                    <div class="act-info">
+                        <b>${m.item}</b>
+                        <small>${m.cat} • ${m.hora}</small>
+                    </div>
+                    <div class="act-amount" style="color: ${m.tipo === 'entrada' ? 'var(--success)' : 'var(--danger)'}">
+                        ${m.tipo === 'entrada' ? '+' : '-'} ${m.valor.toLocaleString()}
+                    </div>
                 </div>
-            `).join('');
-
-            localStorage.setItem('conforto_lazer_db', JSON.stringify(dados));
-            renderGrafico(entradas, saidas);
+            `).join('') : '<p style="text-align:center; color:#999; margin-top:20px;">Nenhum registo encontrado.</p>';
+            
+            renderGrafico(ent, sai);
         }
 
-        function abrirModal(tipo) {
-            tipoAtual = tipo;
-            const select = document.getElementById('categoria');
-            select.innerHTML = categorias[tipo].map(c => `<option value="${c}">${c}</option>`).join('');
-            document.getElementById('modal-titulo').innerText = tipo === 'entrada' ? 'Registar Ganho' : 'Registar Gasto';
-            document.getElementById('btn-salvar').className = tipo === 'entrada' ? 'btn-entrada' : 'btn-saida';
-            document.getElementById('modal').style.display = 'flex';
-            document.getElementById('valor').focus();
+        // --- FUNÇÕES DE CONTROLO ---
+        function abrirVenda(tipo) {
+            tipoVendaAtual = tipo;
+            document.getElementById('venda-titulo').innerText = tipo === 'entrada' ? 'Nova Venda' : 'Novo Gasto';
+            const catSelect = document.getElementById('venda-categoria');
+            catSelect.innerHTML = Object.keys(config[tipo]).map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            carregarItensVenda();
+            document.getElementById('modalVenda').style.display = 'flex';
         }
 
-        function fecharModal() { document.getElementById('modal').style.display = 'none'; }
+        function carregarItensVenda() {
+            const cat = document.getElementById('venda-categoria').value;
+            const itemSelect = document.getElementById('venda-item');
+            if (cat && config[tipoVendaAtual][cat]) {
+                itemSelect.innerHTML = config[tipoVendaAtual][cat].map(i => `<option value="${i}">${i}</option>`).join('');
+            }
+        }
 
-        function salvarRegisto() {
-            const valorInput = document.getElementById('valor').value;
-            if (!valorInput) return;
+        function salvarMovimentacao() {
+            const valor = parseFloat(document.getElementById('venda-valor').value);
+            if (!valor) return alert("Insira o valor");
 
-            dados.push({
-                tipo: tipoAtual,
-                cat: document.getElementById('categoria').value,
-                valor: parseFloat(valorInput),
-                data: new Date().toLocaleDateString('pt-PT'),
-                hora: new Date().toLocaleTimeString('pt-PT')
+            db.push({
+                tipo: tipoVendaAtual,
+                cat: document.getElementById('venda-categoria').value,
+                item: document.getElementById('venda-item').value,
+                valor: valor,
+                data: new Date(document.getElementById('filtro-data').value).toLocaleDateString('pt-PT'),
+                hora: new Date().toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'})
             });
 
-            fecharModal();
-            document.getElementById('valor').value = '';
+            localStorage.setItem('conforto_v4_dados', JSON.stringify(db));
+            document.getElementById('venda-valor').value = '';
+            fecharModais();
             atualizarUI();
         }
 
+        // --- GESTÃO DE MENU ---
+        function abrirConfig() {
+            renderizarGestao();
+            document.getElementById('modalConfig').style.display = 'flex';
+        }
+
+        function mudarTabConfig(tipo) {
+            tabConfigAtual = tipo;
+            document.getElementById('tab-ent').style.background = tipo === 'entrada' ? 'var(--primary)' : '#eee';
+            document.getElementById('tab-ent').style.color = tipo === 'entrada' ? 'white' : 'black';
+            document.getElementById('tab-sai').style.background = tipo === 'saida' ? 'var(--primary)' : '#eee';
+            document.getElementById('tab-sai').style.color = tipo === 'saida' ? 'white' : 'black';
+            renderizarGestao();
+        }
+
+        function adicionarCategoria() {
+            const nome = document.getElementById('nova-cat-nome').value.trim();
+            if (nome) {
+                config[tabConfigAtual][nome] = [];
+                document.getElementById('nova-cat-nome').value = '';
+                salvarConfig();
+            }
+        }
+
+        function adicionarItem() {
+            const cat = document.getElementById('select-cat-destino').value;
+            const nome = document.getElementById('novo-item-nome').value.trim();
+            if (cat && nome) {
+                config[tabConfigAtual][cat].push(nome);
+                document.getElementById('novo-item-nome').value = '';
+                salvarConfig();
+            }
+        }
+
+        function renderizarGestao() {
+            const lista = document.getElementById('lista-gestao');
+            const selectDestino = document.getElementById('select-cat-destino');
+            selectDestino.innerHTML = Object.keys(config[tabConfigAtual]).map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            
+            lista.innerHTML = '';
+            for (let cat in config[tabConfigAtual]) {
+                lista.innerHTML += `
+                    <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #eee;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <strong>${cat}</strong>
+                            <small style="color:red" onclick="apagarCat('${cat}')">Apagar</small>
+                        </div>
+                        <div style="font-size:0.8rem; color:gray; margin-top:5px;">
+                            ${config[tabConfigAtual][cat].join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function apagarCat(cat) { if(confirm("Apagar categoria?")) { delete config[tabConfigAtual][cat]; salvarConfig(); } }
+        function salvarConfig() { localStorage.setItem('conforto_v4_config', JSON.stringify(config)); renderizarGestao(); }
+        function fecharModais() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
         function gerarRelatorioExcel() {
-            if(dados.length === 0) return alert("Sem dados para exportar.");
-            
-            const worksheet = XLSX.utils.json_to_sheet(dados);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
-            
-            const dataAtual = new Date().toISOString().slice(0,10);
-            XLSX.writeFile(workbook, `Conforto_Lazer_Relatorio_${dataAtual}.xlsx`);
+            const ws = XLSX.utils.json_to_sheet(db);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Finanças");
+            XLSX.writeFile(wb, `Relatorio_ConfortoLazer.xlsx`);
         }
 
         let chart;
@@ -157,12 +390,16 @@
             const ctx = document.getElementById('graficoDia').getContext('2d');
             if (chart) chart.destroy();
             chart = new Chart(ctx, {
-                type: 'doughnut',
+                type: 'bar',
                 data: {
                     labels: ['Entradas', 'Saídas'],
-                    datasets: [{ data: [e, s], backgroundColor: ['#27ae60', '#e74c3c'], borderWidth: 0 }]
+                    datasets: [{ data: [e, s], backgroundColor: ['#27ae60', '#e74c3c'], borderRadius: 10 }]
                 },
-                options: { plugins: { legend: { position: 'bottom' } } }
+                options: { 
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { grid: { display: false } } }
+                }
             });
         }
 
